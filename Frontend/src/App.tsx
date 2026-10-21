@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import StudentManagementView from './pages/StudentManagementView'
 import './App.css'
 
 type Account = {
@@ -71,6 +72,9 @@ function App() {
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  // Active navigation tab
+  const [activeTab, setActiveTab] = useState<'students' | 'accounts'>('students')
 
   // Import states
   const [showImportModal, setShowImportModal] = useState(false)
@@ -358,28 +362,54 @@ function App() {
     <div className="app">
       <header className="header">
         <div>
-          <h1>Quản lý người dùng</h1>
-          <p>Quản lý tài khoản và phân quyền hệ thống</p>
+          <h1>Hệ Thống Quản Lý Đào Tạo (TMS)</h1>
+          <p>Quản lý tài khoản, phân quyền và hồ sơ học viên</p>
         </div>
 
         <div className="header-actions">
-          <button
-            className="secondary-button"
-            onClick={openImportModal}
-          >
-            📥 Nhập từ tệp (Import)
-          </button>
-          <button
-            className="primary-button"
-            onClick={openCreateModal}
-          >
-            + Thêm tài khoản
-          </button>
+          {activeTab === 'accounts' && (
+            <>
+              <button
+                className="secondary-button"
+                onClick={openImportModal}
+              >
+                📥 Nhập từ tệp (Import)
+              </button>
+              <button
+                className="primary-button"
+                onClick={openCreateModal}
+              >
+                + Thêm tài khoản
+              </button>
+            </>
+          )}
         </div>
       </header>
 
+      {/* Thanh điều hướng Tab chính */}
+      <nav className="main-tabs-bar">
+        <div className="container tab-container">
+          <button
+            className={`tab-btn ${activeTab === 'students' ? 'active' : ''}`}
+            onClick={() => setActiveTab('students')}
+          >
+            🎓 Hồ Sơ Học Viên & Lớp Học
+          </button>
+          <button
+            className={`tab-btn ${activeTab === 'accounts' ? 'active' : ''}`}
+            onClick={() => setActiveTab('accounts')}
+          >
+            👥 Quản Lý Người Dùng & Phân Quyền
+          </button>
+        </div>
+      </nav>
+
       <main className="container">
-        <section className="filter-card">
+        {activeTab === 'students' ? (
+          <StudentManagementView />
+        ) : (
+          <>
+            <section className="filter-card">
           <div className="filter-item search-item">
             <label>Tìm kiếm</label>
             <input
@@ -579,6 +609,8 @@ function App() {
             </button>
           </div>
         </section>
+          </>
+        )}
       </main>
 
       {showModal && (
