@@ -1039,3 +1039,70 @@ tr:hover td {
     padding-top: 14px;
     border-top: 1px solid #f1f5f9;
 }
+
+.page-tabs {
+    display: flex;
+    gap: 8px;
+}
+
+.page-tab {
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    background: #fff;
+    color: #334155;
+    padding: 10px 14px;
+    font-weight: 600;
+}
+
+.page-tab.active {
+    border-color: #2563eb;
+    background: #eff6ff;
+    color: #1d4ed8;
+}
+
+.operation-action-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+}
+
+.operation-action-card p {
+    margin: 6px 0 0;
+    color: #64748b;
+}
+
+.operation-overlay {
+    z-index: 20;
+}
+
+.operation-modal {
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.operation-modal textarea {
+    width: 100%;
+    min-height: 100px;
+    padding: 10px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font: inherit;
+    resize: vertical;
+}
+
+@media (max-width: 700px) {
+    .header-actions,
+    .operation-action-card {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .page-tabs {
+        width: 100%;
+    }
+
+    .page-tab {
+        flex: 1;
+    }
+}

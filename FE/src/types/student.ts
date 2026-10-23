@@ -7,8 +7,36 @@ export type StudentEnrollment = {
   room: string
   startDate: string
   endDate: string
-  status: 'DANG_HOC' | 'HOAN_THANH' | 'BAO_LUU' | 'HUY'
+  status: 'DANG_HOC' | 'HOAN_THANH' | 'BAO_LUU' | 'HUY' | 'CHUYEN_LOP' | 'DA_NGHI'
   finalGrade?: number | null
+}
+
+export type StudentOperationType = 'BAO_LUU' | 'CHUYEN_LOP' | 'THOI_HOC'
+
+export type StudentOperationHistory = {
+  id: number
+  type: StudentOperationType
+  reason: string
+  effectiveDate: string
+  recordedAt: string
+  sourceEnrollmentId?: number | null
+  sourceClassCode?: string | null
+  targetEnrollmentId?: number | null
+  targetClassCode?: string | null
+  targetClassName?: string | null
+}
+
+export type StudentOperationRequest = {
+  type: StudentOperationType
+  reason: string
+  effectiveDate: string
+  sourceEnrollmentId?: number
+  targetClassCode?: string
+  targetClassName?: string
+  targetTeacherName?: string
+  targetSchedule?: string
+  targetRoom?: string
+  targetEndDate?: string
 }
 
 export type StudentProfile = {
@@ -25,6 +53,7 @@ export type StudentProfile = {
   status: string     // DANG_HOC, BAO_LUU, DA_TOT_NGHIEP, DA_NGHI
   currentClasses: StudentEnrollment[]
   classHistory: StudentEnrollment[]
+  operationHistory: StudentOperationHistory[]
 }
 
 export type StudentUpdateForm = {
@@ -36,5 +65,4 @@ export type StudentUpdateForm = {
   address: string
   entryLevel: string
   note: string
-  status: string
 }

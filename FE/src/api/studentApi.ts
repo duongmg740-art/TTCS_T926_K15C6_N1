@@ -1,4 +1,8 @@
-import { StudentProfile, StudentUpdateForm } from '../types/student'
+import type {
+  StudentOperationRequest,
+  StudentProfile,
+  StudentUpdateForm,
+} from '../types/student'
 
 const API_BASE_URL = 'http://localhost:8080/api/students'
 
@@ -44,6 +48,7 @@ const MOCK_STUDENTS: StudentProfile[] = [
         finalGrade: 8.5,
       },
     ],
+    operationHistory: [],
   },
   {
     id: 2,
@@ -85,6 +90,7 @@ const MOCK_STUDENTS: StudentProfile[] = [
         finalGrade: 9.0,
       },
     ],
+    operationHistory: [],
   },
   {
     id: 3,
@@ -138,6 +144,7 @@ const MOCK_STUDENTS: StudentProfile[] = [
         finalGrade: 8.2,
       },
     ],
+    operationHistory: [],
   },
 ]
 
@@ -244,4 +251,20 @@ export async function updateStudentProfileApi(
   }
   localStudents[idx] = updated
   return updated
+}
+
+export async function recordStudentOperationApi(
+  id: number,
+  operation: StudentOperationRequest
+): Promise<StudentProfile> {
+  const response = await fetch(`${API_BASE_URL}/${id}/operations`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(operation),
+  })
+  const body = await response.json().catch(() => null)
+  if (!response.ok) {
+    throw new Error(body?.message ?? 'Không thể ghi nhận thao tác học viên.')
+  }
+  return body as StudentProfile
 }

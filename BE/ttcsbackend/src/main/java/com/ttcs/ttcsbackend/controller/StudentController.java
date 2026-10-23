@@ -1,13 +1,17 @@
 package com.ttcs.ttcsbackend.controller;
 
 import com.ttcs.ttcsbackend.dto.StudentProfileResponse;
+import com.ttcs.ttcsbackend.dto.StudentOperationRequest;
 import com.ttcs.ttcsbackend.dto.StudentUpdateRequest;
 import com.ttcs.ttcsbackend.service.StudentService;
+import jakarta.validation.Valid;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import java.time.LocalDate;
 
 @RestController
 @RequestMapping("/api/students")
@@ -69,5 +73,27 @@ public class StudentController {
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(Map.of("message", "Lỗi cập nhật hồ sơ: " + e.getMessage()));
         }
+    }
+
+    @PostMapping("/{id}/operations")
+    public ResponseEntity<?> recordOperation(
+            @PathVariable Long id,
+            @Valid @RequestBody StudentOperationRequest request) {
+        try {
+            return ResponseEntity.ok(studentService.recordOperation(id, request));
+        } catch (IllegalArgumentException exception) {
+            return ResponseEntity.badRequest().body(Map.of("message", exception.getMessage()));
+        }
+        catch (IllegalStateException exception) {
+            return ResponseEntity.status(409).body(Map.of("message", exception.getMessage()));
+        }
+    }
+
+    @GetMapping("/attendance-roster")
+    public ResponseEntity<?> getAttendanceRoster(
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @RequestParam(defaultValue = "") String classCode) {
+        return ResponseEntity.ok(studentService.getAttendanceRoster(date, classCode));
     }
 }

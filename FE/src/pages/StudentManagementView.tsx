@@ -1,9 +1,15 @@
 import React, { useEffect, useState } from 'react'
 import {
   fetchStudents,
+  recordStudentOperationApi,
   updateStudentProfileApi,
 } from '../api/studentApi'
-import { StudentProfile, StudentUpdateForm } from '../types/student'
+import type {
+  StudentOperationRequest,
+  StudentOperationType,
+  StudentProfile,
+  StudentUpdateForm,
+} from '../types/student'
 
 export default function StudentManagementView() {
   const [students, setStudents] = useState<StudentProfile[]>([])
@@ -29,10 +35,22 @@ export default function StudentManagementView() {
     address: '',
     entryLevel: '',
     note: '',
-    status: 'DANG_HOC',
   })
   const [saveLoading, setSaveLoading] = useState(false)
   const [saveSuccessMsg, setSaveSuccessMsg] = useState('')
+  const [showOperationModal, setShowOperationModal] = useState(false)
+  const [operationType, setOperationType] = useState<StudentOperationType>('BAO_LUU')
+  const [operationReason, setOperationReason] = useState('')
+  const [effectiveDate, setEffectiveDate] = useState(new Date().toLocaleDateString('en-CA'))
+  const [sourceEnrollmentId, setSourceEnrollmentId] = useState('')
+  const [targetClassCode, setTargetClassCode] = useState('')
+  const [targetClassName, setTargetClassName] = useState('')
+  const [targetTeacherName, setTargetTeacherName] = useState('')
+  const [targetSchedule, setTargetSchedule] = useState('')
+  const [targetRoom, setTargetRoom] = useState('')
+  const [targetEndDate, setTargetEndDate] = useState('')
+  const [operationLoading, setOperationLoading] = useState(false)
+  const [operationError, setOperationError] = useState('')
 
   const loadData = async () => {
     try {
@@ -79,9 +97,60 @@ export default function StudentManagementView() {
       address: student.address || '',
       entryLevel: student.entryLevel || 'Cơ bản',
       note: student.note || '',
-      status: student.status || 'DANG_HOC',
     })
     setShowProfileModal(true)
+  }
+
+  const openOperationModal = () => {
+    setOperationType('BAO_LUU')
+    setOperationReason('')
+    setEffectiveDate(new Date().toLocaleDateString('en-CA'))
+    setSourceEnrollmentId(selectedStudent?.currentClasses[0]?.id.toString() ?? '')
+    setTargetClassCode('')
+    setTargetClassName('')
+    setTargetTeacherName('')
+    setTargetSchedule('')
+    setTargetRoom('')
+    setTargetEndDate('')
+    setOperationError('')
+    setShowOperationModal(true)
+  }
+
+  const handleRecordOperation = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!selectedStudent || !operationReason.trim() || !effectiveDate) return
+
+    const operation: StudentOperationRequest = {
+      type: operationType,
+      reason: operationReason.trim(),
+      effectiveDate,
+    }
+    if (operationType === 'CHUYEN_LOP') {
+      operation.sourceEnrollmentId = Number(sourceEnrollmentId)
+      operation.targetClassCode = targetClassCode.trim()
+      operation.targetClassName = targetClassName.trim()
+      operation.targetTeacherName = targetTeacherName.trim()
+      operation.targetSchedule = targetSchedule.trim()
+      operation.targetRoom = targetRoom.trim()
+      operation.targetEndDate = targetEndDate || undefined
+    }
+
+    try {
+      setOperationLoading(true)
+      setOperationError('')
+      const updated = await recordStudentOperationApi(selectedStudent.id, operation)
+      setSelectedStudent(updated)
+      setShowOperationModal(false)
+      await loadData()
+    } catch (operationFailure: unknown) {
+      setOperationError(
+        operationFailure instanceof Error
+          ? operationFailure.message
+          : 'Không thể ghi nhận thao tác học viên.'
+      )
+    } finally {
+      setOperationLoading(false)
+    }
   }
 
   const handleFormChange = (field: keyof StudentUpdateForm, value: string) => {
@@ -123,6 +192,10 @@ export default function StudentManagementView() {
         return <span className="status-badge completed">Đã học xong</span>
       case 'BAO_LUU':
         return <span className="status-badge inactive">Bảo lưu</span>
+      case 'CHUYEN_LOP':
+        return <span className="status-badge completed">Đã chuyển lớp</span>
+      case 'DA_NGHI':
+        return <span className="status-badge inactive">Đã thôi học</span>
       case 'DA_TOT_NGHIEP':
         return <span className="status-badge active">Đã tốt nghiệp</span>
       default:
@@ -489,6 +562,18 @@ export default function StudentManagementView() {
                 )}
               </div>
 
+              {!isEditing && selectedStudent.status === 'DANG_HOC' && (
+                <div className="profile-section-card operation-action-card">
+                  <div>
+                    <h3>Thao tác học viên</h3>
+                    <p>Bảo lưu, chuyển lớp hoặc thôi học. Lý do và ngày hiệu lực được lưu vào lịch sử hồ sơ.</p>
+                  </div>
+                  <button type="button" className="primary-button" onClick={openOperationModal}>
+                    Ghi nhận thao tác
+                  </button>
+                </div>
+              )}
+
               {/* LỚP ĐANG HỌC */}
               <div className="profile-section-card">
                 <div className="profile-section-header">
@@ -573,6 +658,46 @@ export default function StudentManagementView() {
                   <p className="empty-sub">Chưa có lịch sử lớp học cũ nào.</p>
                 )}
               </div>
+
+              <div className="profile-section-card">
+                <div className="profile-section-header">
+                  <h3>Lịch sử thao tác ({selectedStudent.operationHistory?.length || 0})</h3>
+                </div>
+                {selectedStudent.operationHistory?.length ? (
+                  <div className="table-wrapper">
+                    <table className="table mini-table">
+                      <thead>
+                        <tr>
+                          <th>Thao tác</th>
+                          <th>Lý do</th>
+                          <th>Ngày hiệu lực</th>
+                          <th>Lớp chuyển đến</th>
+                          <th>Ngày ghi nhận</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {selectedStudent.operationHistory.map((operation) => (
+                          <tr key={operation.id}>
+                            <td>{operation.type === 'BAO_LUU'
+                              ? 'Bảo lưu'
+                              : operation.type === 'CHUYEN_LOP'
+                                ? `Chuyển lớp${operation.sourceClassCode ? ` từ ${operation.sourceClassCode}` : ''}`
+                                : 'Thôi học'}</td>
+                            <td>{operation.reason}</td>
+                            <td>{operation.effectiveDate}</td>
+                            <td>{operation.targetClassCode
+                              ? `${operation.targetClassCode} - ${operation.targetClassName}`
+                              : '—'}</td>
+                            <td>{new Date(operation.recordedAt).toLocaleString('vi-VN')}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p className="empty-sub">Chưa có thao tác nào được ghi nhận.</p>
+                )}
+              </div>
             </div>
 
             <div className="modal-footer">
@@ -585,6 +710,112 @@ export default function StudentManagementView() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+      {showOperationModal && selectedStudent && (
+        <div className="modal-overlay operation-overlay">
+          <form className="modal operation-modal" onSubmit={handleRecordOperation}>
+            <div className="modal-header">
+              <div>
+                <h2>Thao tác hồ sơ học viên</h2>
+                <p>{selectedStudent.fullName} ({selectedStudent.studentCode})</p>
+              </div>
+              <button
+                type="button"
+                className="close-button"
+                aria-label="Đóng"
+                onClick={() => setShowOperationModal(false)}
+              >×</button>
+            </div>
+            {operationError && <div className="error-message" role="alert">{operationError}</div>}
+            <div className="form-grid">
+              <div className="form-group">
+                <label htmlFor="student-operation-type">Loại thao tác</label>
+                <select
+                  id="student-operation-type"
+                  value={operationType}
+                  onChange={(event) => setOperationType(event.target.value as StudentOperationType)}
+                >
+                  <option value="BAO_LUU">Bảo lưu</option>
+                  <option value="CHUYEN_LOP">Chuyển lớp</option>
+                  <option value="THOI_HOC">Thôi học</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label htmlFor="student-operation-date">Ngày hiệu lực</label>
+                <input
+                  id="student-operation-date"
+                  type="date"
+                  required
+                  value={effectiveDate}
+                  onChange={(event) => setEffectiveDate(event.target.value)}
+                />
+              </div>
+              {operationType === 'CHUYEN_LOP' && (
+                <>
+                  <div className="form-group full">
+                    <label htmlFor="source-enrollment">Lớp hiện tại</label>
+                    <select
+                      id="source-enrollment"
+                      required
+                      value={sourceEnrollmentId}
+                      onChange={(event) => setSourceEnrollmentId(event.target.value)}
+                    >
+                      <option value="">Chọn lớp cần chuyển</option>
+                      {selectedStudent.currentClasses.map((enrollment) => (
+                        <option key={enrollment.id} value={enrollment.id}>
+                          {enrollment.classCode} - {enrollment.className}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="target-class-code">Mã lớp mới</label>
+                    <input id="target-class-code" required maxLength={100} value={targetClassCode}
+                      onChange={(event) => setTargetClassCode(event.target.value)} />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="target-class-name">Tên lớp mới</label>
+                    <input id="target-class-name" required maxLength={200} value={targetClassName}
+                      onChange={(event) => setTargetClassName(event.target.value)} />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="target-teacher">Giảng viên</label>
+                    <input id="target-teacher" maxLength={200} value={targetTeacherName}
+                      onChange={(event) => setTargetTeacherName(event.target.value)} />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="target-schedule">Lịch học</label>
+                    <input id="target-schedule" maxLength={200} value={targetSchedule}
+                      onChange={(event) => setTargetSchedule(event.target.value)} />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="target-room">Phòng học</label>
+                    <input id="target-room" maxLength={200} value={targetRoom}
+                      onChange={(event) => setTargetRoom(event.target.value)} />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="target-end-date">Ngày kết thúc lớp mới</label>
+                    <input id="target-end-date" type="date" value={targetEndDate}
+                      onChange={(event) => setTargetEndDate(event.target.value)} />
+                  </div>
+                </>
+              )}
+              <div className="form-group full">
+                <label htmlFor="student-operation-reason">Lý do (bắt buộc)</label>
+                <textarea id="student-operation-reason" required maxLength={1000} rows={4}
+                  value={operationReason} onChange={(event) => setOperationReason(event.target.value)} />
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button type="button" className="cancel-button" onClick={() => setShowOperationModal(false)}>
+                Hủy
+              </button>
+              <button type="submit" className="primary-button" disabled={operationLoading}>
+                {operationLoading ? 'Đang ghi nhận...' : 'Lưu thao tác'}
+              </button>
+            </div>
+          </form>
         </div>
       )}
     </div>

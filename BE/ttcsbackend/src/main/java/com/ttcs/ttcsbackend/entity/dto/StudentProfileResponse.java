@@ -3,6 +3,7 @@ package com.ttcs.ttcsbackend.dto;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import com.ttcs.ttcsbackend.dto.StudentOperationHistoryDto;
 
 public class StudentProfileResponse {
     private Long id;
@@ -22,6 +23,7 @@ public class StudentProfileResponse {
 
     // Lịch sử các lớp đã học (hoàn thành / bảo lưu / hủy)
     private List<StudentEnrollmentDto> classHistory = new ArrayList<>();
+    private List<StudentOperationHistoryDto> operationHistory = new ArrayList<>();
 
     public StudentProfileResponse() {
     }
@@ -128,5 +130,13 @@ public class StudentProfileResponse {
 
     public void setClassHistory(List<StudentEnrollmentDto> classHistory) {
         this.classHistory = classHistory;
+    }
+
+    public List<StudentOperationHistoryDto> getOperationHistory() {
+        return operationHistory;
+    }
+
+    public void setOperationHistory(List<StudentOperationHistoryDto> operationHistory) {
+        this.operationHistory = operationHistory;
     }
 }
